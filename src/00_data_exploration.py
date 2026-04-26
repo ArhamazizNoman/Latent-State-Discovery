@@ -70,7 +70,7 @@ def sanity_checks(df: pd.DataFrame) -> None:
 
     print(f"Phases found: {found_phases}")
     if not expected_phases.issubset(found_phases):
-        print("⚠️ WARNING: Missing expected phases!")
+        print("WARNING WARNING: Missing expected phases!")
 
     # Check rows per individual (should be ~12: 4 rounds x 3 phases)
     counts = df.groupby('Individual').size()
@@ -80,7 +80,7 @@ def sanity_checks(df: pd.DataFrame) -> None:
     # Show individuals with unusual counts
     abnormal = counts[counts != 12]
     if len(abnormal) > 0:
-        print("\n⚠️ Individuals with != 12 observations:")
+        print("\nWARNING Individuals with != 12 observations:")
         print(abnormal)
 
 

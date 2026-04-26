@@ -43,7 +43,7 @@ def basic_cleaning(df):
 
     if "Unnamed: 0" in df.columns:
         df = df.drop(columns=["Unnamed: 0"])
-        print("✔ Dropped column: Unnamed: 0")
+        print("OK Dropped column: Unnamed: 0")
 
     print(f"Shape after cleaning: {df.shape}")
 
@@ -60,7 +60,7 @@ def validate_features(df):
     if missing_cols:
         raise ValueError(f"Missing required features: {missing_cols}")
 
-    print("✔ Features OK")
+    print("OK Features OK")
 
 
 # =========================
@@ -119,10 +119,10 @@ def save_datasets(df_global, df_relative):
     print("\n=== SAVING DATASETS ===")
 
     df_global.to_csv("data/HR_data_2_clean_global.csv", index=False)
-    print("✔ Saved: HR_data_2_clean_global.csv")
+    print("OK Saved: HR_data_2_clean_global.csv")
 
     df_relative.to_csv("data/HR_data_2_clean_relative.csv", index=False)
-    print("✔ Saved: HR_data_2_clean_relative.csv")
+    print("OK Saved: HR_data_2_clean_relative.csv")
 
 
 # =========================

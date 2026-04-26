@@ -1,11 +1,15 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from pathlib import Path
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 
 from scipy.cluster.hierarchy import linkage, fcluster
+
+FIGURES_DIR = Path("figures")
+FIGURES_DIR.mkdir(exist_ok=True)
 
 # =========================
 # CONFIG
@@ -67,7 +71,7 @@ def find_best_k(X):
             best_score = score
             best_k = k
 
-    print(f"\n✔ BEST K: {best_k} (score={best_score:.4f})")
+    print(f"\nOK BEST K: {best_k} (score={best_score:.4f})")
 
     return best_k, scores, Z
 
@@ -86,11 +90,27 @@ def run_hierarchical(df, dataset_name):
 
     X = df[CLUSTER_FEATURES].values
 
-    # ⚠️ anche se i dati sono scalati, lo rifacciamo per sicurezza
+    # WARNING anche se i dati sono scalati, lo rifacciamo per sicurezza
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
     best_k, scores, Z = find_best_k(X_scaled)
+
+    # Silhouette plot
+    ks = [s[0] for s in scores]
+    sil_vals = [s[1] for s in scores]
+
+    plt.figure(figsize=(6, 4))
+    plt.plot(ks, sil_vals, marker="o")
+    plt.axvline(best_k, color="red", linestyle="--", label=f"Best K={best_k}")
+    plt.title(f"Silhouette Score — Hierarchical ({dataset_name})")
+    plt.xlabel("K")
+    plt.ylabel("Silhouette Score")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / f"hierarchical_silhouette_{dataset_name}.png")
+    plt.close()
+    print(f"Saved: figures/hierarchical_silhouette_{dataset_name}.png")
 
     # final clustering
     labels = fcluster(Z, best_k, criterion="maxclust")
@@ -106,7 +126,7 @@ def run_hierarchical(df, dataset_name):
     output_path = RESULTS_DIR / f"hierarchical_{dataset_name}_k{best_k}.csv"
     df_result.to_csv(output_path, index=False)
 
-    print(f"\n✔ Saved: {output_path}")
+    print(f"\nOK Saved: {output_path}")
 
     return df_result, best_k
 

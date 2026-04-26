@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+from scipy.stats import chi2_contingency
 
 # ==============================
 # CONFIG
@@ -40,7 +41,7 @@ kmeans = pd.read_csv(FILES["kmeans"]).rename(columns={"cluster": "cluster_kmeans
 gmm = pd.read_csv(FILES["gmm"]).rename(columns={"cluster": "cluster_gmm"})
 hier = pd.read_csv(FILES["hier"]).rename(columns={"cluster": "cluster_hier"})
 
-print("✔ Data loaded")
+print("OK Data loaded")
 
 # ==============================
 # MERGE
@@ -50,7 +51,7 @@ print("\n=== MERGING DATA ===")
 df = kmeans.merge(gmm, on=MERGE_KEYS)
 df = df.merge(hier, on=MERGE_KEYS)
 
-print(f"✔ Merged shape: {df.shape}")
+print(f"OK Merged shape: {df.shape}")
 
 # ==============================
 # CLUSTER DISTRIBUTIONS
@@ -120,10 +121,25 @@ def phase_alignment(cluster_col):
     for phase in ctab.columns:
         dominant_cluster = ctab[phase].idxmax()
         perc = ctab[phase].max()
-        print(f"Phase {phase} → cluster {dominant_cluster} ({perc:.2f})")
+        print(f"Phase {phase} -> cluster {dominant_cluster} ({perc:.2f})")
 
 for col in ["cluster_kmeans", "cluster_gmm", "cluster_hier"]:
     phase_alignment(col)
+
+# ==============================
+# CHI-SQUARE TEST: CLUSTER vs PHASE
+# ==============================
+print("\n=== CHI-SQUARE TEST: CLUSTER vs PHASE ===")
+
+for col in ["cluster_kmeans", "cluster_gmm", "cluster_hier"]:
+    contingency = pd.crosstab(df[col], df["Phase"])
+    chi2, p, dof, expected = chi2_contingency(contingency)
+    print(f"\n{col}:")
+    print(f"  Chi2 = {chi2:.3f}, p = {p:.4f}, dof = {dof}")
+    if p < 0.05:
+        print("  Result: cluster assignment is NOT independent of phase (p < 0.05)")
+    else:
+        print("  Result: no significant association between cluster and phase (p >= 0.05)")
 
 # ==============================
 # STRONG DIFFERENCES
@@ -164,7 +180,7 @@ print(f"Agreement ratio: {df['consensus'].mean():.3f}")
 OUTPUT_FILE = f"results/cluster_comparison_{DATA_TYPE}.csv"
 df.to_csv(OUTPUT_FILE, index=False)
 
-print(f"\n✔ Saved: {OUTPUT_FILE}")
+print(f"\nOK Saved: {OUTPUT_FILE}")
 print("\n=== DONE ===")
 
 
@@ -197,7 +213,14 @@ X_pca = pca.fit_transform(X_scaled)
 df["PC1"] = X_pca[:, 0]
 df["PC2"] = X_pca[:, 1]
 
-print(f"Explained variance: {pca.explained_variance_ratio_}")
+var1 = pca.explained_variance_ratio_[0] * 100
+var2 = pca.explained_variance_ratio_[1] * 100
+var_total = var1 + var2
+
+print(f"PC1: {var1:.1f}%  PC2: {var2:.1f}%  Total: {var_total:.1f}%")
+
+pc1_label = f"PC1 ({var1:.1f}% variance)"
+pc2_label = f"PC2 ({var2:.1f}% variance)"
 
 # ==============================
 # 1. PCA - COLOR BY PHASE
@@ -208,9 +231,9 @@ for phase in df["Phase"].unique():
     subset = df[df["Phase"] == phase]
     plt.scatter(subset["PC1"], subset["PC2"], label=phase)
 
-plt.title("PCA - Colored by Phase")
-plt.xlabel("PC1")
-plt.ylabel("PC2")
+plt.title(f"PCA - Colored by Phase (total variance explained: {var_total:.1f}%)")
+plt.xlabel(pc1_label)
+plt.ylabel(pc2_label)
 plt.legend()
 
 plt.savefig("figures/pca_phase.png")
@@ -220,18 +243,18 @@ plt.close()
 # 2. PCA - COLOR BY CLUSTERS
 # ==============================
 for col in ["cluster_kmeans", "cluster_gmm", "cluster_hier"]:
-    
+
     plt.figure()
-    
+
     for c in df[col].unique():
         subset = df[df[col] == c]
         plt.scatter(subset["PC1"], subset["PC2"], label=f"{col}_{c}")
-    
-    plt.title(f"PCA - {col}")
-    plt.xlabel("PC1")
-    plt.ylabel("PC2")
+
+    plt.title(f"PCA - {col} (total variance explained: {var_total:.1f}%)")
+    plt.xlabel(pc1_label)
+    plt.ylabel(pc2_label)
     plt.legend()
-    
+
     plt.savefig(f"figures/pca_{col}.png")
     plt.close()
 
@@ -281,4 +304,4 @@ for col in ["cluster_kmeans", "cluster_gmm", "cluster_hier"]:
     plt.savefig(f"figures/phase_distribution_{col}.png")
     plt.close()
 
-print("✔ Plots saved in /figures")
+print("OK Plots saved in /figures")

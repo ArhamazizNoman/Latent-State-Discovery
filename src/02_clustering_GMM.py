@@ -1,7 +1,11 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 from pathlib import Path
+
+FIGURES_DIR = Path("figures")
+FIGURES_DIR.mkdir(exist_ok=True)
 
 # =========================
 # CONFIG
@@ -46,6 +50,7 @@ def find_best_gmm(X):
     best_k = None
     best_bic = np.inf
     best_model = None
+    bic_scores = []
 
     for k in K_RANGE:
         gmm = GaussianMixture(
@@ -56,6 +61,7 @@ def find_best_gmm(X):
 
         gmm.fit(X)
         bic = gmm.bic(X)
+        bic_scores.append((k, bic))
 
         print(f"K={k} -> BIC={bic:.2f}")
 
@@ -64,9 +70,9 @@ def find_best_gmm(X):
             best_k = k
             best_model = gmm
 
-    print(f"\n✔ BEST K: {best_k} (BIC={best_bic:.2f})")
+    print(f"\nOK BEST K: {best_k} (BIC={best_bic:.2f})")
 
-    return best_model, best_k
+    return best_model, best_k, bic_scores
 
 
 # =========================
@@ -83,7 +89,23 @@ def run_gmm(df, dataset_name):
 
     X = df[CLUSTER_FEATURES].values
 
-    model, best_k = find_best_gmm(X)
+    model, best_k, bic_scores = find_best_gmm(X)
+
+    # BIC plot
+    ks = [s[0] for s in bic_scores]
+    bic_vals = [s[1] for s in bic_scores]
+
+    plt.figure(figsize=(6, 4))
+    plt.plot(ks, bic_vals, marker="o")
+    plt.axvline(best_k, color="red", linestyle="--", label=f"Best K={best_k}")
+    plt.title(f"BIC — GMM ({dataset_name})")
+    plt.xlabel("K")
+    plt.ylabel("BIC")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / f"gmm_bic_{dataset_name}.png")
+    plt.close()
+    print(f"Saved: figures/gmm_bic_{dataset_name}.png")
 
     # Hard labels
     labels = model.predict(X)
@@ -106,7 +128,7 @@ def run_gmm(df, dataset_name):
     output_path = RESULTS_DIR / f"gmm_{dataset_name}_k{best_k}.csv"
     df_result.to_csv(output_path, index=False)
 
-    print(f"\n✔ Saved: {output_path}")
+    print(f"\nOK Saved: {output_path}")
 
     return df_result, best_k
 
